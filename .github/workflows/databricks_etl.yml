@@ -1,30 +1,36 @@
 name: Run Databricks ETL
 
 on:
-  workflow_dispatch: # allows manual trigger
+  workflow_dispatch:
     inputs:
       process_date:
-        description: 'Date to process (YYYY-MM-DD)'
+        description: 'Process date for ETL'
         required: true
         default: '2025-08-15'
 
 jobs:
   run-etl:
     runs-on: ubuntu-latest
+
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Trigger Databricks Job via API
+        uses: actions/http-client@v1
+        with:
+          url: ${{ secrets.DATABRICKS_HOST }}/api/2.1/jobs/run-now
+          method: POST
+          headers: |
+            Authorization: Bearer ${{ secrets.DATABRICKS_TOKEN }}
+            Content-Type: application/json
+          body: |
+            {
+              "job_id": "${{ secrets.DATABRICKS_JOB_ID }}",
+              "notebook_params": {
+                "process_date": "${{ github.event.inputs.process_date }}"
+              }
+            }
 
-    - name: Trigger Databricks ETL Job via OIDC (Service Principal)
-      uses: databricks/run-job@v1
-      with:
-        job-id: ${{ secrets.DATABRICKS_JOB_ID }}
-        databricks-host: ${{ secrets.DATABRICKS_HOST }}
-        azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-        azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
-        azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-        notebook-params: '{"process_date":"${{ github.event.inputs.process_date }}"}'
-
-    - name: Show workflow completion
-      run: echo "Databricks ETL job triggered successfully!"
+      - name: Confirm Trigger
+        run: echo "Databricks ETL job triggered successfully for date ${{ github.event.inputs.process_date }}"
