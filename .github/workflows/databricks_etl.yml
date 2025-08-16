@@ -16,21 +16,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Trigger Databricks Job via API
-        uses: actions/http-client@v1
-        with:
-          url: ${{ secrets.DATABRICKS_HOST }}/api/2.1/jobs/run-now
-          method: POST
-          headers: |
-            Authorization: Bearer ${{ secrets.DATABRICKS_TOKEN }}
-            Content-Type: application/json
-          body: |
-            {
-              "job_id": "${{ secrets.DATABRICKS_JOB_ID }}",
-              "notebook_params": {
-                "process_date": "${{ github.event.inputs.process_date }}"
-              }
-            }
-
-      - name: Confirm Trigger
-        run: echo "Databricks ETL job triggered successfully for date ${{ github.event.inputs.process_date }}"
+      - name: Trigger Databricks Job via REST API
+        run: |
+          echo "Triggering Databricks ETL job for date ${{ github.event.inputs.process_date }}"
+          curl -X POST "${{ secrets.DATABRICKS_HOST }}/api/2.1/jobs/run-now" \
+            -H "Authorization: Bearer ${{ secrets.DATABRICKS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+                  "job_id": "'"${{ secrets.DATABRICKS_JOB_ID }}"'",
+                  "notebook_params": {
+                    "process_date": "'"${{ github.event.inputs.process_date }}"'"
+                  }
+                }'
