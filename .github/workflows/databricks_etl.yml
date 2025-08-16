@@ -1,0 +1,30 @@
+name: Run Databricks ETL
+
+on:
+  workflow_dispatch: # allows manual trigger
+    inputs:
+      process_date:
+        description: 'Date to process (YYYY-MM-DD)'
+        required: true
+        default: '2025-08-15'
+
+jobs:
+  run-etl:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Trigger Databricks ETL Job via OIDC (Service Principal)
+      uses: databricks/run-job@v1
+      with:
+        job-id: ${{ secrets.DATABRICKS_JOB_ID }}
+        databricks-host: ${{ secrets.DATABRICKS_HOST }}
+        azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+        notebook-params: '{"process_date":"${{ github.event.inputs.process_date }}"}'
+
+    - name: Show workflow completion
+      run: echo "Databricks ETL job triggered successfully!"
